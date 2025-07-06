@@ -1,0 +1,105 @@
+# Profiling Configuration for Exercise 01-04
+# Profile-Guided Optimization Settings
+
+profiling:
+  # CPU profiling settings
+  cpu:
+    enabled: true
+    duration: "30s"
+    output_dir: "profiles"
+    sample_rate: 100  # samples per second
+    
+  # Memory profiling settings
+  memory:
+    enabled: true
+    output_dir: "profiles"
+    gc_before_heap: true
+    
+  # Trace profiling settings
+  trace:
+    enabled: false
+    duration: "10s"
+    output_dir: "profiles"
+    
+  # Block profiling settings
+  block:
+    enabled: false
+    rate: 1
+    
+  # Mutex profiling settings
+  mutex:
+    enabled: false
+    fraction: 1
+
+# Benchmark configuration
+benchmarks:
+  # Data sizes for testing
+  data_sizes:
+    - 100
+    - 1000
+    - 10000
+    - 100000
+    
+  # Number of iterations
+  iterations: 1000
+  
+  # Warmup iterations
+  warmup: 100
+  
+  # Algorithms to test
+  algorithms:
+    sorting:
+      - "quicksort"
+      - "mergesort"
+      - "heapsort"
+    searching:
+      - "binary"
+      - "linear"
+      
+# Optimization targets
+optimization:
+  # Performance improvement targets
+  targets:
+    cpu_improvement: 20  # percentage
+    memory_reduction: 15  # percentage
+    
+  # Focus areas
+  focus_areas:
+    - "hot_paths"
+    - "memory_allocations"
+    - "cache_efficiency"
+    - "branch_prediction"
+    
+# Analysis settings
+analysis:
+  # Flame graph settings
+  flame_graph:
+    min_width: 0.01
+    title: "CPU Profile - Exercise 01-04"
+    
+  # Top functions to analyze
+  top_functions: 20
+  
+  # Call graph depth
+  call_graph_depth: 10
+  
+  # Report format
+  report_format: "text"  # text, pdf, html
+
+# Output settings
+output:
+  # Directory for all outputs
+  base_dir: "results"
+  
+  # Subdirectories
+  profiles_dir: "profiles"
+  reports_dir: "reports"
+  graphs_dir: "graphs"
+  
+  # File naming
+  timestamp_format: "2006-01-02_15-04-05"
+  
+  # Cleanup settings
+  cleanup:
+    keep_profiles: 10  # number of profile sets to keep
+    auto_cleanup: true

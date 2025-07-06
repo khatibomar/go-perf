@@ -1,0 +1,22 @@
+{
+  "type": "spike",
+  "confidence": 0.9,
+  "start_time": "2025-07-06T10:35:18.2373754+03:00",
+  "end_time": "2025-07-06T10:35:18.2373754+03:00",
+  "duration": 0,
+  "description": "Allocation spike: 1270165279.00 bytes/s (56.6x normal)",
+  "metrics": {
+    "mean": 1270165279,
+    "std_dev": 0,
+    "min": 0,
+    "max": 0,
+    "trend": 0,
+    "periodicity": 0,
+    "volatility": 0,
+    "growth_rate": 0,
+    "burst_intensity": 56.64702856761607
+  },
+  "severity": "high",
+  "impact": "Severe allocation spike",
+  "suggestion": "Investigate cause of allocation spike"
+}

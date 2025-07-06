@@ -1,0 +1,20 @@
+This is a sample text file for memory-conscious processing.
+Each line will be processed by the pipeline.
+The system demonstrates efficient memory usage through:
+- Buffer pooling for memory reuse
+- Chunked processing to limit memory footprint
+- Memory pressure monitoring and cleanup
+- Configurable worker pools for concurrency
+
+This file contains multiple lines of text.
+Some lines are longer than others to test variable chunk sizes.
+The pipeline will transform this text according to the specified processor.
+
+Memory optimization techniques used:
+1. Object pooling to reduce garbage collection
+2. Streaming processing to handle large files
+3. Backpressure control to prevent memory overflow
+4. Efficient buffer management
+5. Real-time memory monitoring
+
+End of sample file.
