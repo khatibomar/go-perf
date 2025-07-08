@@ -1,0 +1,9 @@
+{
+  "duration": "1s",
+  "file": "profiles\\mem\\mem_20250708_214744_d85d7b8f824d0583.pb",
+  "id": "mem_20250708_214744_d85d7b8f824d0583",
+  "size": "4373",
+  "timestamp": "2025-07-08T21:47:44+03:00",
+  "type": "mem",
+  "version": "go1.24.4"
+}

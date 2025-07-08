@@ -1,0 +1,367 @@
+{
+  "name": "web-service-capacity-planning",
+  "description": "Capacity planning configuration for web service",
+  "enabled": true,
+  "metrics": [
+    {
+      "name": "cpu_usage",
+      "type": "cpu",
+      "unit": "percent",
+      "weight": 1.0,
+      "critical": true,
+      "threshold": 80.0,
+      "aggregation": "avg",
+      "source": "system",
+      "collection_interval": "1m"
+    },
+    {
+      "name": "memory_usage",
+      "type": "memory",
+      "unit": "percent",
+      "weight": 0.9,
+      "critical": true,
+      "threshold": 85.0,
+      "aggregation": "avg",
+      "source": "system",
+      "collection_interval": "1m"
+    },
+    {
+      "name": "disk_usage",
+      "type": "disk",
+      "unit": "percent",
+      "weight": 0.7,
+      "critical": false,
+      "threshold": 90.0,
+      "aggregation": "max",
+      "source": "system",
+      "collection_interval": "5m"
+    },
+    {
+      "name": "network_io",
+      "type": "network",
+      "unit": "mbps",
+      "weight": 0.6,
+      "critical": false,
+      "threshold": 800.0,
+      "aggregation": "avg",
+      "source": "system",
+      "collection_interval": "1m"
+    },
+    {
+      "name": "request_rate",
+      "type": "application",
+      "unit": "rps",
+      "weight": 1.0,
+      "critical": true,
+      "threshold": 1000.0,
+      "aggregation": "sum",
+      "source": "application",
+      "collection_interval": "30s"
+    },
+    {
+      "name": "response_time_p95",
+      "type": "latency",
+      "unit": "ms",
+      "weight": 0.8,
+      "critical": true,
+      "threshold": 500.0,
+      "aggregation": "p95",
+      "source": "application",
+      "collection_interval": "30s"
+    },
+    {
+      "name": "error_rate",
+      "type": "error",
+      "unit": "percent",
+      "weight": 1.0,
+      "critical": true,
+      "threshold": 1.0,
+      "aggregation": "avg",
+      "source": "application",
+      "collection_interval": "30s"
+    }
+  ],
+  "models": [
+    {
+      "name": "linear-regression",
+      "type": "linear",
+      "enabled": true,
+      "parameters": {
+        "min_data_points": 10,
+        "confidence_interval": 0.95
+      },
+      "horizon": "30d",
+      "confidence": 0.8,
+      "applicable_metrics": ["cpu_usage", "memory_usage", "request_rate"]
+    },
+    {
+      "name": "seasonal-trend",
+      "type": "seasonal",
+      "enabled": true,
+      "parameters": {
+        "seasonality_period": "7d",
+        "trend_components": ["daily", "weekly"],
+        "decomposition_method": "additive"
+      },
+      "horizon": "14d",
+      "confidence": 0.75,
+      "applicable_metrics": ["request_rate", "response_time_p95"]
+    },
+    {
+      "name": "exponential-smoothing",
+      "type": "exponential",
+      "enabled": false,
+      "parameters": {
+        "alpha": 0.3,
+        "beta": 0.1,
+        "gamma": 0.1
+      },
+      "horizon": "7d",
+      "confidence": 0.7,
+      "applicable_metrics": ["cpu_usage", "memory_usage"]
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "description": "Current growth rate continues",
+      "enabled": true,
+      "growth_rate": 0.02,
+      "timeframe": "90d",
+      "factors": {
+        "seasonal": false,
+        "marketing_campaigns": false,
+        "feature_releases": false
+      }
+    },
+    {
+      "name": "moderate-growth",
+      "description": "Moderate business growth scenario",
+      "enabled": true,
+      "growth_rate": 0.10,
+      "timeframe": "90d",
+      "factors": {
+        "seasonal": true,
+        "marketing_campaigns": true,
+        "feature_releases": false,
+        "seasonal_multiplier": 1.2
+      }
+    },
+    {
+      "name": "high-growth",
+      "description": "Aggressive growth scenario",
+      "enabled": true,
+      "growth_rate": 0.25,
+      "timeframe": "90d",
+      "factors": {
+        "seasonal": true,
+        "marketing_campaigns": true,
+        "feature_releases": true,
+        "seasonal_multiplier": 1.5,
+        "campaign_multiplier": 1.3,
+        "feature_multiplier": 1.1
+      }
+    },
+    {
+      "name": "viral-growth",
+      "description": "Viral/exponential growth scenario",
+      "enabled": false,
+      "growth_rate": 0.50,
+      "timeframe": "30d",
+      "factors": {
+        "seasonal": true,
+        "marketing_campaigns": true,
+        "feature_releases": true,
+        "viral_coefficient": 2.0,
+        "media_attention": true
+      }
+    },
+    {
+      "name": "black-friday",
+      "description": "Black Friday traffic spike",
+      "enabled": true,
+      "growth_rate": 3.0,
+      "timeframe": "7d",
+      "factors": {
+        "seasonal": true,
+        "marketing_campaigns": true,
+        "event_driven": true,
+        "peak_multiplier": 5.0,
+        "duration_hours": 48
+      }
+    }
+  ],
+  "thresholds": {
+    "cpu": {
+      "warning": 70.0,
+      "critical": 85.0,
+      "max": 100.0
+    },
+    "memory": {
+      "warning": 75.0,
+      "critical": 90.0,
+      "max": 100.0
+    },
+    "disk": {
+      "warning": 80.0,
+      "critical": 95.0,
+      "max": 100.0
+    },
+    "network": {
+      "warning": 700.0,
+      "critical": 900.0,
+      "max": 1000.0
+    },
+    "latency": {
+      "p50_warning": 100,
+      "p50_critical": 200,
+      "p95_warning": 500,
+      "p95_critical": 1000,
+      "p99_warning": 1000,
+      "p99_critical": 2000
+    }
+  },
+  "data_sources": [
+    {
+      "name": "prometheus",
+      "type": "prometheus",
+      "enabled": false,
+      "config": {
+        "url": "http://prometheus:9090",
+        "queries": {
+          "cpu_usage": "avg(100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100))",
+          "memory_usage": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "request_rate": "sum(rate(http_requests_total[5m]))"
+        }
+      }
+    },
+    {
+      "name": "file",
+      "type": "file",
+      "enabled": true,
+      "config": {
+        "path": "metrics-data.json",
+        "format": "json",
+        "refresh_interval": "5m"
+      }
+    },
+    {
+      "name": "synthetic",
+      "type": "synthetic",
+      "enabled": true,
+      "config": {
+        "generate_historical": true,
+        "days_of_history": 30,
+        "base_values": {
+          "cpu_usage": 45.0,
+          "memory_usage": 60.0,
+          "request_rate": 150.0
+        },
+        "noise_factor": 0.1,
+        "trend_factor": 0.02
+      }
+    }
+  ],
+  "reporting": {
+    "enabled": true,
+    "interval": "24h",
+    "format": "json",
+    "retention": "90d",
+    "include_charts": true,
+    "include_raw_predictions": false,
+    "sections": [
+      "executive_summary",
+      "current_status",
+      "predictions",
+      "scenarios",
+      "recommendations",
+      "risk_assessment",
+      "cost_estimates"
+    ]
+  },
+  "notifications": {
+    "enabled": true,
+    "channels": [
+      {
+        "name": "email",
+        "type": "email",
+        "enabled": false,
+        "config": {
+          "smtp_server": "smtp.company.com",
+          "port": 587,
+          "username": "alerts@company.com",
+          "recipients": ["ops-team@company.com", "capacity-team@company.com"]
+        }
+      },
+      {
+        "name": "slack",
+        "type": "slack",
+        "enabled": false,
+        "config": {
+          "webhook_url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+          "channel": "#capacity-planning",
+          "username": "CapacityBot"
+        }
+      },
+      {
+        "name": "file",
+        "type": "file",
+        "enabled": true,
+        "config": {
+          "filename": "capacity-alerts.json"
+        }
+      }
+    ],
+    "triggers": [
+      {
+        "name": "capacity-warning",
+        "condition": "time_to_capacity < 30d",
+        "severity": "warning",
+        "channels": ["file", "slack"],
+        "cooldown": "24h"
+      },
+      {
+        "name": "capacity-critical",
+        "condition": "time_to_capacity < 7d",
+        "severity": "critical",
+        "channels": ["file", "slack", "email"],
+        "cooldown": "6h"
+      },
+      {
+        "name": "threshold-breach",
+        "condition": "predicted_value > critical_threshold",
+        "severity": "warning",
+        "channels": ["file"],
+        "cooldown": "12h"
+      }
+    ]
+  },
+  "optimization": {
+    "enabled": true,
+    "auto_scaling": {
+      "enabled": false,
+      "provider": "aws",
+      "config": {
+        "min_instances": 2,
+        "max_instances": 20,
+        "target_cpu": 70,
+        "scale_up_cooldown": "5m",
+        "scale_down_cooldown": "10m"
+      }
+    },
+    "recommendations": {
+      "enabled": true,
+      "categories": [
+        "infrastructure_scaling",
+        "performance_optimization",
+        "cost_optimization",
+        "architecture_changes"
+      ],
+      "priority_weights": {
+        "cost": 0.3,
+        "performance": 0.4,
+        "reliability": 0.3
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "duration": "1s",
+  "file": "profiles\\goroutine\\goroutine_20250708_214544_38a396638a45c214.pb",
+  "id": "goroutine_20250708_214544_38a396638a45c214",
+  "size": "2581",
+  "timestamp": "2025-07-08T21:45:44+03:00",
+  "type": "goroutine",
+  "version": "go1.24.4"
+}

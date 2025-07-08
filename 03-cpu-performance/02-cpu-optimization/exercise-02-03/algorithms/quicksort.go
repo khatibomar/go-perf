@@ -114,21 +114,7 @@ func partitionRandomized(data []int, low, high int) int {
 	return partition(data, low, high)
 }
 
-// insertionSortRange performs insertion sort on a range
-func insertionSortRange(data []int, low, high int) {
-	for i := low + 1; i <= high; i++ {
-		key := data[i]
-		j := i - 1
-		
-		// Move elements greater than key one position ahead
-		for j >= low && data[j] > key {
-			data[j+1] = data[j]
-			j--
-		}
-		
-		data[j+1] = key
-	}
-}
+
 
 // QuickSort3Way implements 3-way quicksort for handling duplicates efficiently
 func QuickSort3Way(data []int) {

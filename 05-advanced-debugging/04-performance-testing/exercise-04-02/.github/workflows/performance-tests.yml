@@ -1,0 +1,329 @@
+# .github/workflows/performance-tests.yml
+name: Performance Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  performance-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    strategy:
+      matrix:
+        test-suite: [load, stress, integration]
+        include:
+          - test-suite: load
+            timeout: 10m
+            fail-on-regression: true
+          - test-suite: stress
+            timeout: 20m
+            fail-on-regression: false
+          - test-suite: integration
+            timeout: 30m
+            fail-on-regression: true
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for baseline comparison
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod verify
+    
+    - name: Build application
+      run: |
+        go build -v ./...
+    
+    - name: Create artifacts directory
+      run: |
+        mkdir -p ./artifacts/{results,baseline,reports}
+    
+    - name: Download baseline (if exists)
+      continue-on-error: true
+      run: |
+        # In a real scenario, this would download from artifact storage
+        # For demo, we'll create a sample baseline
+        echo '{"version":"baseline","timestamp":"2024-01-01T00:00:00Z","environment":"github","metrics":{"throughput":{"name":"throughput","value":100.0,"unit":"req/s","tolerance":5.0,"trend":"stable"}}}' > ./artifacts/baseline/baseline.json
+    
+    - name: Run performance tests
+      id: perf-tests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TEST_SUITE: ${{ matrix.test-suite }}
+        TEST_TIMEOUT: ${{ matrix.timeout }}
+        FAIL_ON_REGRESSION: ${{ matrix.fail-on-regression }}
+      run: |
+        # Set test-specific parameters
+        case "$TEST_SUITE" in
+          "load")
+            EXTRA_ARGS="-mode ci"
+            ;;
+          "stress")
+            EXTRA_ARGS="-mode ci -fail-on-regression=false"
+            ;;
+          "integration")
+            EXTRA_ARGS="-mode ci -timeout 30m"
+            ;;
+        esac
+        
+        # Run the performance test pipeline
+        go run . \
+          -provider github \
+          -workspace . \
+          -artifacts ./artifacts \
+          -timeout "$TEST_TIMEOUT" \
+          -fail-on-regression="$FAIL_ON_REGRESSION" \
+          -baseline branch \
+          $EXTRA_ARGS
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results-${{ matrix.test-suite }}-${{ github.run_number }}
+        path: |
+          ./artifacts/results/
+          ./artifacts/reports/
+        retention-days: 30
+    
+    - name: Upload baseline
+      uses: actions/upload-artifact@v3
+      if: github.ref == 'refs/heads/main' && steps.perf-tests.outcome == 'success'
+      with:
+        name: performance-baseline-${{ github.run_number }}
+        path: ./artifacts/baseline/
+        retention-days: 90
+    
+    - name: Comment PR with results
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request' && always()
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read test results
+          const resultsDir = './artifacts/results';
+          let comment = `## 🚀 Performance Test Results (${{ matrix.test-suite }})
+
+`;
+          
+          try {
+            const files = fs.readdirSync(resultsDir);
+            const jsonFiles = files.filter(f => f.endsWith('.json'));
+            
+            if (jsonFiles.length > 0) {
+              const resultFile = path.join(resultsDir, jsonFiles[0]);
+              const results = JSON.parse(fs.readFileSync(resultFile, 'utf8'));
+              
+              comment += `**Summary:**
+`;
+              comment += `- Status: ${{ steps.perf-tests.outcome === 'success' ? '✅ Passed' : '❌ Failed' }}
+`;
+              comment += `- Test Suite: ${{ matrix.test-suite }}
+`;
+              comment += `- Duration: ${results.summary?.total_duration || 'N/A'}
+`;
+              comment += `- Tests: ${results.summary?.total_tests || 0}
+
+`;
+              
+              if (results.results && results.results.length > 0) {
+                comment += `**Test Details:**
+`;
+                results.results.forEach(test => {
+                  const status = test.status === 'passed' ? '✅' : '❌';
+                  comment += `- ${status} ${test.test_name} (${test.duration})
+`;
+                });
+              }
+            } else {
+              comment += `No detailed results available.
+`;
+            }
+          } catch (error) {
+            comment += `Error reading results: ${error.message}
+`;
+          }
+          
+          comment += `
+**Artifacts:** [Download Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Create check run
+      uses: actions/github-script@v6
+      if: always()
+      with:
+        script: |
+          const conclusion = '${{ steps.perf-tests.outcome }}' === 'success' ? 'success' : 'failure';
+          const summary = `Performance test suite: ${{ matrix.test-suite }}`;
+          
+          await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: `Performance Tests (${{ matrix.test-suite }})`,
+            head_sha: context.sha,
+            status: 'completed',
+            conclusion: conclusion,
+            output: {
+              title: `Performance Tests (${{ matrix.test-suite }})`,
+              summary: summary,
+              text: `Test suite completed with status: ${conclusion}`
+            }
+          });
+    
+    - name: Notify Slack on failure
+      if: failure() && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{
+              "text": "🚨 Performance test failure",
+              "attachments": [{
+                "color": "danger",
+                "title": "Performance Test Failed",
+                "fields": [
+                  {"title": "Repository", "value": "${{ github.repository }}", "short": true},
+                  {"title": "Branch", "value": "${{ github.ref_name }}", "short": true},
+                  {"title": "Test Suite", "value": "${{ matrix.test-suite }}", "short": true},
+                  {"title": "Build", "value": "${{ github.run_number }}", "short": true}
+                ],
+                "actions": [{
+                  "type": "button",
+                  "text": "View Build",
+                  "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }]
+              }]
+            }' \
+            "$SLACK_WEBHOOK_URL"
+        fi
+
+  # Aggregate results from all test suites
+  aggregate-results:
+    needs: performance-tests
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./all-results
+    
+    - name: Aggregate and analyze results
+      run: |
+        echo "## 📊 Performance Test Summary" > summary.md
+        echo "" >> summary.md
+        echo "**Build:** ${{ github.run_number }}" >> summary.md
+        echo "**Commit:** ${{ github.sha }}" >> summary.md
+        echo "**Branch:** ${{ github.ref_name }}" >> summary.md
+        echo "" >> summary.md
+        
+        # Count results
+        total_suites=0
+        passed_suites=0
+        
+        for suite in load stress integration; do
+          if [ -d "./all-results/performance-results-$suite-${{ github.run_number }}" ]; then
+            total_suites=$((total_suites + 1))
+            # Check if suite passed (simplified check)
+            if [ -f "./all-results/performance-results-$suite-${{ github.run_number }}/results/performance_report_*.json" ]; then
+              passed_suites=$((passed_suites + 1))
+              echo "- ✅ $suite test suite" >> summary.md
+            else
+              echo "- ❌ $suite test suite" >> summary.md
+            fi
+          fi
+        done
+        
+        echo "" >> summary.md
+        echo "**Overall Status:** $passed_suites/$total_suites test suites passed" >> summary.md
+        
+        cat summary.md
+    
+    - name: Update baseline on main branch
+      if: github.ref == 'refs/heads/main' && needs.performance-tests.result == 'success'
+      run: |
+        echo "Updating performance baseline for main branch"
+        # In a real scenario, this would update the baseline in artifact storage
+        # or commit it back to the repository
+        echo "Baseline update completed"
+
+  # Security and compliance checks
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security scan
+      uses: securecodewarrior/github-action-add-sarif@v1
+      continue-on-error: true
+      with:
+        sarif-file: 'security-scan-results.sarif'
+    
+    - name: Check for secrets
+      run: |
+        # Simple check for common secret patterns
+        if grep -r "password\|secret\|key" --include="*.go" --include="*.yml" .; then
+          echo "⚠️ Potential secrets found in code"
+          exit 1
+        fi
+        echo "✅ No obvious secrets detected"

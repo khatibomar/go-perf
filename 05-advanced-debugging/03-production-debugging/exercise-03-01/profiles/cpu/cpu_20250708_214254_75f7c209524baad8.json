@@ -1,0 +1,9 @@
+{
+  "duration": "10s",
+  "file": "profiles\\cpu\\cpu_20250708_214254_75f7c209524baad8.pb",
+  "id": "cpu_20250708_214254_75f7c209524baad8",
+  "size": "1773",
+  "timestamp": "2025-07-08T21:42:44+03:00",
+  "type": "cpu",
+  "version": "go1.24.4"
+}

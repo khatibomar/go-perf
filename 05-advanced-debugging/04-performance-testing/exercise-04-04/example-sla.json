@@ -1,0 +1,249 @@
+{
+  "name": "web-service-sla",
+  "description": "Service Level Agreements for web service performance",
+  "enabled": true,
+  "interval": "1m",
+  "slas": [
+    {
+      "name": "response-time-p95",
+      "description": "95th percentile response time should be under 500ms",
+      "enabled": true,
+      "metric": "response_time_p95",
+      "objective": {
+        "type": "latency",
+        "target": 500,
+        "operator": "<",
+        "unit": "ms",
+        "threshold": 600
+      },
+      "window": "5m",
+      "severity": "warning",
+      "tags": ["performance", "latency", "user-experience"]
+    },
+    {
+      "name": "response-time-p99",
+      "description": "99th percentile response time should be under 1000ms",
+      "enabled": true,
+      "metric": "response_time_p99",
+      "objective": {
+        "type": "latency",
+        "target": 1000,
+        "operator": "<",
+        "unit": "ms",
+        "threshold": 1200
+      },
+      "window": "5m",
+      "severity": "critical",
+      "tags": ["performance", "latency", "tail-latency"]
+    },
+    {
+      "name": "availability",
+      "description": "Service availability should be 99.9% or higher",
+      "enabled": true,
+      "metric": "availability",
+      "objective": {
+        "type": "availability",
+        "target": 99.9,
+        "operator": ">=",
+        "unit": "percent",
+        "threshold": 99.5
+      },
+      "window": "1h",
+      "severity": "critical",
+      "tags": ["availability", "uptime", "reliability"]
+    },
+    {
+      "name": "error-rate",
+      "description": "Error rate should be below 1%",
+      "enabled": true,
+      "metric": "error_rate",
+      "objective": {
+        "type": "error_rate",
+        "target": 1.0,
+        "operator": "<",
+        "unit": "percent",
+        "threshold": 2.0
+      },
+      "window": "10m",
+      "severity": "warning",
+      "tags": ["reliability", "errors", "quality"]
+    },
+    {
+      "name": "throughput",
+      "description": "Minimum throughput should be maintained",
+      "enabled": true,
+      "metric": "throughput",
+      "objective": {
+        "type": "throughput",
+        "target": 100,
+        "operator": ">=",
+        "unit": "rps",
+        "threshold": 80
+      },
+      "window": "5m",
+      "severity": "warning",
+      "tags": ["performance", "capacity", "throughput"]
+    }
+  ],
+  "budgets": [
+    {
+      "name": "monthly-error-budget",
+      "description": "Monthly error budget for 99.9% availability",
+      "sla": "availability",
+      "period": "30d",
+      "target": 99.9,
+      "consumed_threshold": 80,
+      "alert_on_burn_rate": true,
+      "burn_rate_threshold": 2.0
+    },
+    {
+      "name": "weekly-latency-budget",
+      "description": "Weekly latency budget for P95 response time",
+      "sla": "response-time-p95",
+      "period": "7d",
+      "target": 95,
+      "consumed_threshold": 75,
+      "alert_on_burn_rate": true,
+      "burn_rate_threshold": 1.5
+    }
+  ],
+  "alerting": {
+    "enabled": true,
+    "cooldown": "5m",
+    "channels": [
+      {
+        "name": "console",
+        "type": "console",
+        "enabled": true,
+        "config": {
+          "format": "detailed",
+          "colors": true
+        }
+      },
+      {
+        "name": "file",
+        "type": "file",
+        "enabled": true,
+        "config": {
+          "filename": "alerts.json",
+          "format": "json",
+          "rotation": "daily"
+        }
+      },
+      {
+        "name": "webhook",
+        "type": "webhook",
+        "enabled": false,
+        "config": {
+          "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "template": {
+            "text": "SLA Violation: {{.SLA}} - {{.Description}}",
+            "attachments": [
+              {
+                "color": "{{if eq .Severity \"critical\"}}danger{{else}}warning{{end}}",
+                "fields": [
+                  {
+                    "title": "Metric",
+                    "value": "{{.Metric}}",
+                    "short": true
+                  },
+                  {
+                    "title": "Current Value",
+                    "value": "{{.CurrentValue}} {{.Unit}}",
+                    "short": true
+                  },
+                  {
+                    "title": "Target",
+                    "value": "{{.Target}} {{.Unit}}",
+                    "short": true
+                  },
+                  {
+                    "title": "Severity",
+                    "value": "{{.Severity}}",
+                    "short": true
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "rules": [
+      {
+        "name": "sla-violation-warning",
+        "condition": "sla_violation",
+        "severity": "warning",
+        "threshold": 1,
+        "duration": "2m",
+        "channels": ["console", "file"],
+        "cooldown": "10m",
+        "enabled": true,
+        "description": "Alert when SLA violation occurs (warning level)"
+      },
+      {
+        "name": "sla-violation-critical",
+        "condition": "sla_violation",
+        "severity": "critical",
+        "threshold": 1,
+        "duration": "1m",
+        "channels": ["console", "file", "webhook"],
+        "cooldown": "5m",
+        "enabled": true,
+        "description": "Alert when critical SLA violation occurs"
+      },
+      {
+        "name": "error-budget-burn",
+        "condition": "error_budget_burn",
+        "severity": "warning",
+        "threshold": 2.0,
+        "duration": "5m",
+        "channels": ["console", "file"],
+        "cooldown": "15m",
+        "enabled": true,
+        "description": "Alert when error budget is burning too fast"
+      },
+      {
+        "name": "error-budget-exhausted",
+        "condition": "error_budget_exhausted",
+        "severity": "critical",
+        "threshold": 90,
+        "duration": "1m",
+        "channels": ["console", "file", "webhook"],
+        "cooldown": "30m",
+        "enabled": true,
+        "description": "Alert when error budget is nearly exhausted"
+      }
+    ],
+    "escalation": {
+      "enabled": true,
+      "levels": [
+        {
+          "name": "level-1",
+          "delay": "5m",
+          "channels": ["console", "file"],
+          "conditions": ["unresolved_critical"]
+        },
+        {
+          "name": "level-2",
+          "delay": "15m",
+          "channels": ["webhook"],
+          "conditions": ["unresolved_critical"]
+        }
+      ]
+    }
+  },
+  "reporting": {
+    "enabled": true,
+    "interval": "1h",
+    "format": "json",
+    "channels": ["file"],
+    "retention": "30d",
+    "include_trends": true,
+    "include_predictions": false
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "name": "web-service-benchmark",
+  "description": "Comprehensive benchmark for web service performance",
+  "duration": "5m",
+  "warmup_time": "30s",
+  "cooldown_time": "15s",
+  "targets": [
+    {
+      "name": "api-server",
+      "type": "http",
+      "url": "https://httpbin.org",
+      "health_check": "/status/200",
+      "timeout": "10s",
+      "headers": {
+        "User-Agent": "Performance-Benchmark/1.0",
+        "Accept": "application/json"
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "baseline-load",
+      "description": "Baseline load test with steady traffic",
+      "concurrency": 10,
+      "duration": "3m",
+      "ramp_up_time": "30s",
+      "ramp_down_time": "30s",
+      "think_time": "100ms",
+      "request_rate": 50,
+      "requests": [
+        {
+          "name": "get-user",
+          "method": "GET",
+          "path": "/get",
+          "weight": 0.6,
+          "headers": {
+            "Accept": "application/json"
+          },
+          "validation": {
+            "status_code": 200,
+            "response_time_max": "500ms",
+            "body_contains": ["origin"]
+          }
+        },
+        {
+          "name": "post-data",
+          "method": "POST",
+          "path": "/post",
+          "weight": 0.3,
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          "body": "{\"test\": \"data\", \"timestamp\": \"{{timestamp}}\"}",
+          "validation": {
+            "status_code": 200,
+            "response_time_max": "1s"
+          }
+        },
+        {
+          "name": "get-status",
+          "method": "GET",
+          "path": "/status/200",
+          "weight": 0.1,
+          "validation": {
+            "status_code": 200,
+            "response_time_max": "200ms"
+          }
+        }
+      ]
+    },
+    {
+      "name": "stress-test",
+      "description": "High load stress test",
+      "concurrency": 50,
+      "duration": "2m",
+      "ramp_up_time": "1m",
+      "ramp_down_time": "30s",
+      "think_time": "50ms",
+      "request_rate": 200,
+      "requests": [
+        {
+          "name": "heavy-load",
+          "method": "GET",
+          "path": "/delay/1",
+          "weight": 1.0,
+          "validation": {
+            "status_code": 200,
+            "response_time_max": "2s"
+          }
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "name": "avg-response-time",
+      "type": "latency",
+      "unit": "ms",
+      "aggregation": "mean",
+      "threshold": 500,
+      "critical": true
+    },
+    {
+      "name": "p95-response-time",
+      "type": "latency",
+      "unit": "ms",
+      "aggregation": "p95",
+      "threshold": 1000,
+      "critical": true
+    },
+    {
+      "name": "p99-response-time",
+      "type": "latency",
+      "unit": "ms",
+      "aggregation": "p99",
+      "threshold": 2000,
+      "critical": false
+    },
+    {
+      "name": "throughput",
+      "type": "throughput",
+      "unit": "rps",
+      "aggregation": "sum",
+      "threshold": 10,
+      "critical": true
+    },
+    {
+      "name": "error-rate",
+      "type": "error_rate",
+      "unit": "percent",
+      "aggregation": "avg",
+      "threshold": 1,
+      "critical": true
+    },
+    {
+      "name": "success-rate",
+      "type": "success_rate",
+      "unit": "percent",
+      "aggregation": "avg",
+      "threshold": 99,
+      "critical": true
+    }
+  ],
+  "thresholds": {
+    "latency": {
+      "p50": 200,
+      "p90": 500,
+      "p95": 800,
+      "p99": 1500,
+      "max": 3000
+    },
+    "throughput": {
+      "min_rps": 5,
+      "max_rps": 1000
+    },
+    "error_rate": {
+      "max_percent": 2,
+      "max_count": 100
+    },
+    "resource": {
+      "cpu_max": 80,
+      "memory_max": 85,
+      "disk_max": 90
+    }
+  },
+  "baseline": {
+    "enabled": true,
+    "path": "baseline.json",
+    "version": "1.0.0",
+    "environment": "production",
+    "auto_update": false,
+    "tolerance": {
+      "latency": 10,
+      "throughput": 5,
+      "error_rate": 1
+    }
+  },
+  "capacity": {
+    "enabled": true,
+    "prediction_horizon": "30d",
+    "growth_scenarios": [
+      {
+        "name": "conservative",
+        "growth_rate": 0.05
+      },
+      {
+        "name": "moderate",
+        "growth_rate": 0.15
+      },
+      {
+        "name": "aggressive",
+        "growth_rate": 0.30
+      }
+    ]
+  },
+  "data_sets": [
+    {
+      "name": "user_data",
+      "type": "csv",
+      "path": "test-data/users.csv",
+      "fields": ["user_id", "email", "name"]
+    },
+    {
+      "name": "product_data",
+      "type": "json",
+      "path": "test-data/products.json",
+      "fields": ["product_id", "name", "price"]
+    }
+  ],
+  "reporting": {
+    "enabled": true,
+    "formats": ["json", "html", "csv"],
+    "output_dir": "reports",
+    "include_charts": true,
+    "include_raw_data": false
+  }
+}
