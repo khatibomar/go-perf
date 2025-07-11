@@ -44,7 +44,7 @@ func findItemGood(lookup map[string]bool, target string) bool {
 func processDataGood(items []string) []string {
 	result := make([]string, 0, len(items))
 	for _, item := range items {
-		// Combine operations efficiently
+		// use only methods that are needed
 		trimmed := strings.TrimSpace(item)
 		lower := strings.ToLower(trimmed)
 		result = append(result, lower)
@@ -61,7 +61,3 @@ func processDataBetter(items []string) []string {
 	}
 	return result
 }
-
-// Removed timeFunction and main to avoid conflict with antipatterns.go
-// The main function is in antipatterns.go which demonstrates both
-// antipatterns and improved implementations

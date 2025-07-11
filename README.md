@@ -16,7 +16,7 @@ This course is structured as a progressive learning journey, taking you from fun
 ## Course Structure
 
 ### Module 01: Performance Fundamentals
-**Duration:** 2-3 days  
+**Duration:** 2-3 days
 **Focus:** Understanding performance basics, measurement, and profiling foundations
 
 - **Chapter 01:** Performance Mindset and Methodology
@@ -25,7 +25,7 @@ This course is structured as a progressive learning journey, taking you from fun
 - **Chapter 04:** Benchmarking Best Practices
 
 ### Module 02: Memory Optimization
-**Duration:** 3-4 days  
+**Duration:** 3-4 days
 **Focus:** Memory allocation, garbage collection, and memory-efficient programming
 
 - **Chapter 01:** Understanding Go Memory Allocator
@@ -34,7 +34,7 @@ This course is structured as a progressive learning journey, taking you from fun
 - **Chapter 04:** Memory Optimization Patterns
 
 ### Module 03: CPU Performance
-**Duration:** 3-4 days  
+**Duration:** 3-4 days
 **Focus:** CPU profiling, algorithmic optimization, and concurrency patterns
 
 - **Chapter 01:** CPU Profiling Techniques
@@ -43,7 +43,7 @@ This course is structured as a progressive learning journey, taking you from fun
 - **Chapter 04:** Lock-Free Programming Patterns
 
 ### Module 04: I/O and Network Performance
-**Duration:** 3-4 days  
+**Duration:** 3-4 days
 **Focus:** Network optimization, database performance, and I/O patterns
 
 - **Chapter 01:** Network Programming Optimization
@@ -52,7 +52,7 @@ This course is structured as a progressive learning journey, taking you from fun
 - **Chapter 04:** Caching Strategies
 
 ### Module 05: Advanced Debugging and Production
-**Duration:** 4-5 days  
+**Duration:** 4-5 days
 **Focus:** Production debugging, monitoring, and advanced tooling
 
 - **Chapter 01:** Linux Performance Tools for Go
@@ -222,5 +222,3 @@ By the end of this course, you will:
 ---
 
 **Ready to become a Go performance expert?** Start with [Module 01: Performance Fundamentals](./01-performance-fundamentals/README.md)
-
-*Last updated: 2024*
