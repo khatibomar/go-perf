@@ -7,7 +7,7 @@ import (
 
 // Example 1: Stack allocation - variable doesn't escape
 func stackAllocation() int {
-	x := 42 // This will be allocated on stack
+	x := 42  // This will be allocated on stack
 	return x // Value is copied, x doesn't escape
 }
 
@@ -109,7 +109,7 @@ func measureMemory(label string) {
 	if label == "" {
 		label = "Unknown"
 	}
-	
+
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	fmt.Printf("%s - Heap: %d KB, Stack: %d KB, Allocs: %d\n",
@@ -123,16 +123,16 @@ func main() {
 	if m.Sys < 50*1024*1024 { // Less than 50MB
 		fmt.Println("Warning: Low system memory may affect escape analysis results")
 	}
-	
+
 	fmt.Println("=== Escape Analysis Examples ===")
 	fmt.Println("Run with: go build -gcflags=\"-m\" escape_analysis.go")
 	fmt.Println("For detailed analysis: go build -gcflags=\"-m -m\" escape_analysis.go")
 	fmt.Println()
-	
+
 	// Force GC to get clean baseline
 	runtime.GC()
 	measureMemory("Initial")
-	
+
 	// Test stack allocations
 	fmt.Println("\n=== Stack Allocations ===")
 	for i := 0; i < 1000000; i++ {
@@ -142,20 +142,20 @@ func main() {
 		_ = noEscapeClosure()
 	}
 	measureMemory("After stack allocations")
-	
+
 	// Test heap allocations
 	fmt.Println("\n=== Heap Allocations ===")
 	var pointers []*int
 	var slices [][]int
 	var structs []*Person
-	
+
 	for i := 0; i < 10000; i++ {
 		pointers = append(pointers, heapAllocationPointer())
 		slices = append(slices, heapAllocationSlice())
 		structs = append(structs, structHeapAllocation())
 	}
 	measureMemory("After heap allocations")
-	
+
 	// Test large allocations
 	fmt.Println("\n=== Large Allocations ===")
 	var largeArrays [][100000]int
@@ -163,20 +163,20 @@ func main() {
 		largeArrays = append(largeArrays, largeArrayAllocation())
 	}
 	measureMemory("After large allocations")
-	
+
 	// Test interface allocations
 	fmt.Println("\n=== Interface Allocations ===")
 	for i := 0; i < 100000; i++ {
 		interfaceAllocation(i)
 	}
 	measureMemory("After interface allocations")
-	
+
 	// Keep references to prevent GC
 	_ = pointers
 	_ = slices
 	_ = structs
 	_ = largeArrays
-	
+
 	fmt.Println("\n=== Analysis Tips ===")
 	fmt.Println("1. Variables that don't escape are allocated on stack (fast)")
 	fmt.Println("2. Variables that escape are allocated on heap (slower, needs GC)")

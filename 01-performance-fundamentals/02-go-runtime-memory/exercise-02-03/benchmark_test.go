@@ -13,14 +13,14 @@ import (
 func BenchmarkCPUBoundTask(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		cpuBoundTask(i, 10000)
+		cpuBoundTask(10000)
 	}
 }
 
 func BenchmarkIOBoundTask(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		ioBoundTask(i, time.Microsecond*10)
+		ioBoundTask(time.Microsecond * 10)
 	}
 }
 
@@ -63,10 +63,10 @@ func BenchmarkWorkerPool(b *testing.B) {
 	pool := NewWorkerPool(runtime.NumCPU(), 100)
 	pool.Start()
 	defer pool.Stop()
-	
+
 	b.ReportAllocs()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		var wg sync.WaitGroup
 		for j := 0; j < 100; j++ {
@@ -113,7 +113,7 @@ func BenchmarkWithoutContext(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		work := make(chan int, 10)
 		results := make(chan int, 10)
-		
+
 		// Start worker without context
 		go func() {
 			for job := range work {
@@ -121,13 +121,13 @@ func BenchmarkWithoutContext(b *testing.B) {
 			}
 			close(results)
 		}()
-		
+
 		// Send work
 		for j := 0; j < 10; j++ {
 			work <- j
 		}
 		close(work)
-		
+
 		// Collect results
 		for range results {
 			// Consume results
@@ -141,21 +141,28 @@ func BenchmarkWithContext(b *testing.B) {
 		ctx, cancel := context.WithCancel(context.Background())
 		work := make(chan int, 10)
 		results := make(chan int, 10)
-		
+
 		// Start context-aware worker
 		go contextAwareWorker(ctx, 0, work, results)
-		
+
 		// Send work
 		for j := 0; j < 10; j++ {
 			work <- j
 		}
 		close(work)
-		
-		// Collect results
+
+		// Collect results with timeout to prevent hanging
+	outer:
 		for j := 0; j < 10; j++ {
-			<-results
+			select {
+			case <-results:
+				// Got result
+			case <-time.After(time.Millisecond * 100):
+				// Timeout, worker may have stopped
+				break outer
+			}
 		}
-		
+
 		cancel()
 	}
 }
@@ -164,7 +171,7 @@ func BenchmarkWithContext(b *testing.B) {
 func BenchmarkGOMAXPROCS1(b *testing.B) {
 	original := runtime.GOMAXPROCS(1)
 	defer runtime.GOMAXPROCS(original)
-	
+
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		var wg sync.WaitGroup
@@ -172,7 +179,7 @@ func BenchmarkGOMAXPROCS1(b *testing.B) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				cpuBoundTask(0, 10000)
+				cpuBoundTask(10000)
 			}()
 		}
 		wg.Wait()
@@ -187,7 +194,7 @@ func BenchmarkGOMAXPROCSDefault(b *testing.B) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				cpuBoundTask(0, 10000)
+				cpuBoundTask(10000)
 			}()
 		}
 		wg.Wait()
@@ -213,16 +220,17 @@ func BenchmarkGoroutineScheduling(b *testing.B) {
 // Benchmark channel operations
 func BenchmarkChannelSendReceive(b *testing.B) {
 	ch := make(chan int)
-	
+
 	go func() {
 		for i := 0; i < b.N; i++ {
 			ch <- i
 		}
+		close(ch)
 	}()
-	
+
 	b.ReportAllocs()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		<-ch
 	}
@@ -230,16 +238,17 @@ func BenchmarkChannelSendReceive(b *testing.B) {
 
 func BenchmarkBufferedChannelSendReceive(b *testing.B) {
 	ch := make(chan int, 100)
-	
+
 	go func() {
 		for i := 0; i < b.N; i++ {
 			ch <- i
 		}
+		close(ch)
 	}()
-	
+
 	b.ReportAllocs()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		<-ch
 	}
@@ -270,7 +279,7 @@ func BenchmarkChannelTypes(b *testing.B) {
 // Benchmark different goroutine counts
 func BenchmarkGoroutineCounts(b *testing.B) {
 	counts := []int{1, 2, 4, 8, 16, 32}
-	
+
 	for _, count := range counts {
 		b.Run(fmt.Sprintf("Goroutines_%d", count), func(b *testing.B) {
 			b.ReportAllocs()
@@ -280,7 +289,7 @@ func BenchmarkGoroutineCounts(b *testing.B) {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-						cpuBoundTask(0, 1000)
+						cpuBoundTask(1000)
 					}()
 				}
 				wg.Wait()
@@ -292,15 +301,15 @@ func BenchmarkGoroutineCounts(b *testing.B) {
 // Test correctness
 func TestSchedulerAnalysis(t *testing.T) {
 	// Test CPU-bound task
-	cpuBoundTask(0, 1000) // Should not panic
-	
+	cpuBoundTask(1000) // Should not panic
+
 	// Test I/O-bound task
-	ioBoundTask(0, time.Microsecond) // Should not panic
-	
+	ioBoundTask(time.Microsecond) // Should not panic
+
 	// Test worker pool
 	pool := NewWorkerPool(2, 10)
 	pool.Start()
-	
+
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
@@ -311,21 +320,21 @@ func TestSchedulerAnalysis(t *testing.T) {
 	}
 	wg.Wait()
 	pool.Stop()
-	
+
 	// Test context-aware worker
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
-	
+
 	work := make(chan int, 5)
 	results := make(chan int, 5)
-	
+
 	go contextAwareWorker(ctx, 0, work, results)
-	
+
 	for i := 0; i < 3; i++ {
 		work <- i
 	}
 	close(work)
-	
+
 	// Collect some results
 	for i := 0; i < 3; i++ {
 		select {
@@ -337,25 +346,25 @@ func TestSchedulerAnalysis(t *testing.T) {
 			t.Error("Timeout waiting for result")
 		}
 	}
-	
+
 	// Test counters
 	iterations := 1000
-	
+
 	channelResult := channelBasedCounter(iterations)
 	if channelResult != int64(iterations) {
 		t.Errorf("Channel counter result: %d, expected: %d", channelResult, iterations)
 	}
-	
+
 	mutexResult := mutexBasedCounter(iterations)
 	if mutexResult != int64(iterations) {
 		t.Errorf("Mutex counter result: %d, expected: %d", mutexResult, iterations)
 	}
-	
+
 	atomicResult := atomicBasedCounter(iterations)
 	if atomicResult != int64(iterations) {
 		t.Errorf("Atomic counter result: %d, expected: %d", atomicResult, iterations)
 	}
-	
+
 	// Test goroutine leak prevention
 	initialGoroutines := runtime.NumGoroutine()
 	properGoroutine()
@@ -363,7 +372,7 @@ func TestSchedulerAnalysis(t *testing.T) {
 	runtime.GC()
 	time.Sleep(time.Millisecond * 50)
 	finalGoroutines := runtime.NumGoroutine()
-	
+
 	if finalGoroutines > initialGoroutines+1 {
 		t.Errorf("Potential goroutine leak: initial=%d, final=%d", initialGoroutines, finalGoroutines)
 	}
