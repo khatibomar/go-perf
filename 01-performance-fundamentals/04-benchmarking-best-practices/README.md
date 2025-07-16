@@ -162,8 +162,9 @@ benchstat -html old.txt new.txt > report.html
 ```
 
 ## Video Resources
-- [How to Write Benchmarks in Go - Dave Cheney](https://www.youtube.com/watch?v=2557w0qsDV0)
-- [Benchmarking Go Code - GopherCon](https://www.youtube.com/watch?v=8hQG7QlcLBk)
+- [How to Write Benchmarks in Go - Dave Cheney](https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go)
+- [More predictable benchmarking with testing.B.Loop](https://go.dev/blog/testing-b-loop)
+- [Using Subtests and Sub-benchmarks](https://go.dev/blog/subtests)
 
 ## Exercises
 

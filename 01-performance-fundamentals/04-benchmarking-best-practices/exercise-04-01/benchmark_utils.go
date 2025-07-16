@@ -1,6 +1,7 @@
 package benchmarks
 
 import (
+	cryptornd "crypto/rand"
 	"fmt"
 	"math/rand"
 	"runtime"
@@ -13,15 +14,15 @@ import (
 
 // BenchmarkResult holds benchmark execution results
 type BenchmarkResult struct {
-	Name           string
-	Iterations     int
-	NsPerOp        int64
-	BytesPerOp     int64
-	AllocsPerOp    int64
-	MBPerSec       float64
-	Duration       time.Duration
-	MemAllocBytes  uint64
-	MemAllocObjs   uint64
+	Name          string
+	Iterations    int
+	NsPerOp       int64
+	BytesPerOp    int64
+	AllocsPerOp   int64
+	MBPerSec      float64
+	Duration      time.Duration
+	MemAllocBytes uint64
+	MemAllocObjs  uint64
 }
 
 // BenchmarkConfig holds configuration for benchmark execution
@@ -66,32 +67,32 @@ func (br *BenchmarkRunner) RunBenchmark(name string, fn func(b *testing.B)) Benc
 	if fn == nil {
 		return BenchmarkResult{Name: name, Iterations: 0, NsPerOp: 0}
 	}
-	
+
 	// Create a mock testing.B for our custom runner
 	b := &testing.B{}
-	
+
 	// Warmup runs
 	for i := 0; i < br.config.WarmupRuns; i++ {
 		fn(b)
 	}
-	
+
 	// Actual benchmark run
 	start := time.Now()
 	var memBefore, memAfter runtime.MemStats
-	
+
 	if br.config.ReportMem {
 		runtime.GC()
 		runtime.ReadMemStats(&memBefore)
 	}
-	
+
 	fn(b)
-	
+
 	if br.config.ReportMem {
 		runtime.ReadMemStats(&memAfter)
 	}
-	
+
 	duration := time.Since(start)
-	
+
 	return BenchmarkResult{
 		Name:          name,
 		Iterations:    b.N,
@@ -107,17 +108,17 @@ func CompareResults(baseline, current BenchmarkResult) string {
 	if baseline.NsPerOp == 0 {
 		return "Cannot compare: baseline has zero ns/op"
 	}
-	
+
 	speedupRatio := float64(baseline.NsPerOp) / float64(current.NsPerOp)
 	percentChange := ((float64(current.NsPerOp) - float64(baseline.NsPerOp)) / float64(baseline.NsPerOp)) * 100
-	
+
 	var result strings.Builder
 	fmt.Fprintf(&result, "Performance comparison:\n")
 	fmt.Fprintf(&result, "  Baseline: %s (%d ns/op)\n", baseline.Name, baseline.NsPerOp)
 	fmt.Fprintf(&result, "  Current:  %s (%d ns/op)\n", current.Name, current.NsPerOp)
 	fmt.Fprintf(&result, "  Speedup:  %.2fx\n", speedupRatio)
 	fmt.Fprintf(&result, "  Change:   %.2f%%\n", percentChange)
-	
+
 	if percentChange < -5 {
 		fmt.Fprintf(&result, "  Status:   IMPROVEMENT (%.2f%% faster)\n", -percentChange)
 	} else if percentChange > 5 {
@@ -125,7 +126,7 @@ func CompareResults(baseline, current BenchmarkResult) string {
 	} else {
 		fmt.Fprintf(&result, "  Status:   NO SIGNIFICANT CHANGE\n")
 	}
-	
+
 	return result.String()
 }
 
@@ -139,9 +140,9 @@ func GenerateRandomBytes(size int) []byte {
 	if size > 100*1024*1024 { // 100MB limit
 		fmt.Printf("Warning: Generating %d bytes may cause memory issues\n", size)
 	}
-	
+
 	data := make([]byte, size)
-	rand.Read(data)
+	cryptornd.Read(data)
 	return data
 }
 
@@ -153,7 +154,7 @@ func GenerateRandomStrings(count, length int) []string {
 	if count > 1000000 {
 		fmt.Printf("Warning: Generating %d strings may cause memory issues\n", count)
 	}
-	
+
 	strings := make([]string, count)
 	for i := 0; i < count; i++ {
 		strings[i] = GenerateRandomString(length)
@@ -346,29 +347,29 @@ func MeasureFunctionWithResult(fn func() interface{}) (time.Duration, interface{
 // ValidateBenchmarkResult checks if benchmark results are reasonable
 func ValidateBenchmarkResult(result BenchmarkResult) []string {
 	var issues []string
-	
+
 	if result.Iterations <= 0 {
 		issues = append(issues, "Invalid iteration count: must be positive")
 	}
-	
+
 	if result.NsPerOp <= 0 {
 		issues = append(issues, "Invalid ns/op: must be positive")
 	}
-	
+
 	if result.Duration <= 0 {
 		issues = append(issues, "Invalid duration: must be positive")
 	}
-	
+
 	// Check for unreasonably fast operations (possible compiler optimization)
 	if result.NsPerOp < 1 {
 		issues = append(issues, "Warning: Very fast operation, check for compiler optimizations")
 	}
-	
+
 	// Check for unreasonably slow operations
 	if result.NsPerOp > 1000000000 { // 1 second per operation
 		issues = append(issues, "Warning: Very slow operation, consider reducing work per iteration")
 	}
-	
+
 	return issues
 }
 
@@ -379,13 +380,13 @@ func CalculateStats(durations []time.Duration) (mean, median, min, max time.Dura
 	if len(durations) == 0 {
 		return
 	}
-	
+
 	// Convert to int64 for calculations
 	values := make([]int64, len(durations))
 	for i, d := range durations {
 		values[i] = d.Nanoseconds()
 	}
-	
+
 	// Sort for median calculation
 	sorted := make([]int64, len(values))
 	copy(sorted, values)
@@ -396,23 +397,23 @@ func CalculateStats(durations []time.Duration) (mean, median, min, max time.Dura
 			}
 		}
 	}
-	
+
 	// Calculate statistics
 	min = time.Duration(sorted[0])
 	max = time.Duration(sorted[len(sorted)-1])
-	
+
 	if len(sorted)%2 == 0 {
 		median = time.Duration((sorted[len(sorted)/2-1] + sorted[len(sorted)/2]) / 2)
 	} else {
 		median = time.Duration(sorted[len(sorted)/2])
 	}
-	
+
 	var sum int64
 	for _, v := range values {
 		sum += v
 	}
 	mean = time.Duration(sum / int64(len(values)))
-	
+
 	// Calculate standard deviation
 	var variance float64
 	meanFloat := float64(mean.Nanoseconds())
@@ -422,7 +423,7 @@ func CalculateStats(durations []time.Duration) (mean, median, min, max time.Dura
 	}
 	variance /= float64(len(values))
 	stddev = variance // Simplified - should be sqrt(variance)
-	
+
 	return
 }
 
@@ -444,7 +445,7 @@ func NoOp() {
 // GetBenchmarkEnvironment returns information about the benchmark environment
 func GetBenchmarkEnvironment() map[string]interface{} {
 	return map[string]interface{}{
-		"GOMAXPROCS":    runtime.GOMAXPROCS(0),
+		"GOMAXPROCS":   runtime.GOMAXPROCS(0),
 		"NumCPU":       runtime.NumCPU(),
 		"NumGoroutine": runtime.NumGoroutine(),
 		"Version":      runtime.Version(),

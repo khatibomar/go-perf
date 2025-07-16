@@ -28,12 +28,12 @@ The server will start on `http://localhost:8080` with the following endpoints:
 ### Step 2: Generate Load (Optional)
 ```bash
 # In a separate terminal, run load tests
-go run load_test.go -scenario=mixed -duration=5m
+go run cmd/load.go -scenario=mixed -duration=5m
 
 # Or run specific scenarios:
-go run load_test.go -scenario=cpu -duration=2m
-go run load_test.go -scenario=memory -duration=2m
-go run load_test.go -scenario=leaky -duration=10m
+go run cmd/load.go -scenario=cpu -duration=2m
+go run cmd/load.go -scenario=memory -duration=2m
+go run cmd/load.go -scenario=leaky -duration=10m
 ```
 
 ## Live Profiling Techniques
@@ -54,7 +54,7 @@ go tool pprof -http=:8081 http://localhost:8080/debug/pprof/profile?seconds=30
 ```
 
 #### Analyzing CPU Profiles Under Load
-1. Start load test: `go run load_test.go -scenario=cpu`
+1. Start load test: `go run cmd/load.go -scenario=cpu`
 2. While load is running, collect profile:
    ```bash
    go tool pprof -http=:8081 http://localhost:8080/debug/pprof/profile?seconds=60
@@ -84,7 +84,7 @@ go tool pprof -http=:8082 http://localhost:8080/debug/pprof/heap
 
 2. Run leaky scenario:
    ```bash
-   go run load_test.go -scenario=leaky -duration=10m
+   go run cmd/load.go -scenario=leaky -duration=10m
    ```
 
 3. Take heap profile after load:
@@ -119,7 +119,7 @@ curl http://localhost:8080/debug/pprof/goroutine?debug=1
 
 2. Run concurrent load:
    ```bash
-   go run load_test.go -scenario=mixed -concurrency=50
+   go run cmd/load.go -scenario=mixed -concurrency=50
    ```
 
 3. Monitor goroutine growth:
@@ -159,7 +159,7 @@ go tool pprof http://localhost:8080/debug/pprof/mutex
 
 #### Setup
 1. Start server: `go run web_server.go`
-2. Generate CPU load: `go run load_test.go -scenario=cpu -duration=5m`
+2. Generate CPU load: `go run cmd/load.go -scenario=cpu -duration=5m`
 3. Profile during load: `go tool pprof -http=:8081 http://localhost:8080/debug/pprof/profile?seconds=60`
 
 #### Expected Findings
@@ -183,7 +183,7 @@ go tool pprof http://localhost:8080/debug/pprof/mutex
 
 #### Setup
 1. Start server: `go run web_server.go`
-2. Generate memory load: `go run load_test.go -scenario=memory -duration=3m`
+2. Generate memory load: `go run cmd/load.go -scenario=memory -duration=3m`
 3. Profile allocations: `go tool pprof -http=:8082 http://localhost:8080/debug/pprof/allocs`
 
 #### Expected Findings
@@ -209,7 +209,7 @@ go tool pprof http://localhost:8080/debug/pprof/mutex
 
 #### Setup
 1. Start server and take baseline: `curl -o baseline.prof "http://localhost:8080/debug/pprof/heap"`
-2. Run leaky load: `go run load_test.go -scenario=leaky -duration=10m`
+2. Run leaky load: `go run cmd/load.go -scenario=leaky -duration=10m`
 3. Take final profile: `curl -o final.prof "http://localhost:8080/debug/pprof/heap"`
 4. Compare: `go tool pprof -base baseline.prof final.prof`
 
@@ -235,7 +235,7 @@ go tool pprof -alloc_space final.prof
 
 #### Setup
 1. Start server: `go run web_server.go`
-2. Generate concurrent load: `go run load_test.go -scenario=mixed -concurrency=100`
+2. Generate concurrent load: `go run cmd/load.go -scenario=mixed -concurrency=100`
 3. Monitor goroutines: `go tool pprof -http=:8083 http://localhost:8080/debug/pprof/goroutine`
 
 #### Expected Findings
@@ -337,7 +337,7 @@ done
 curl -o before.prof "http://localhost:8080/debug/pprof/heap"
 
 # Generate load
-go run load_test.go -scenario=memory -duration=2m
+go run cmd/load.go -scenario=memory -duration=2m
 
 # After profile
 curl -o after.prof "http://localhost:8080/debug/pprof/heap"

@@ -300,4 +300,4 @@ After completing this chapter, proceed to:
 - [Go Blog: Profiling Go Programs](https://go.dev/blog/pprof)
 - [pprof Documentation](https://pkg.go.dev/runtime/pprof)
 - [Graphviz Documentation](https://graphviz.org/documentation/)
-- [Performance Analysis Techniques](https://github.com/golang/go/wiki/Performance)
+- [Go Wiki: Debugging performance issues in Go programs](https://go.dev/wiki/Performance)

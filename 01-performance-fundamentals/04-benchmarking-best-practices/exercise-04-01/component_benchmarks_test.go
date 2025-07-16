@@ -13,17 +13,17 @@ import (
 
 // Stack implementation benchmarks
 type Stack struct {
-	items []interface{}
+	items []any
 	mu    sync.Mutex
 }
 
-func (s *Stack) Push(item interface{}) {
+func (s *Stack) Push(item any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.items = append(s.items, item)
 }
 
-func (s *Stack) Pop() interface{} {
+func (s *Stack) Pop() any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if len(s.items) == 0 {
@@ -42,14 +42,14 @@ func (s *Stack) Size() int {
 
 // Lock-free stack for comparison
 type LockFreeStack struct {
-	items []interface{}
+	items []any
 }
 
-func (s *LockFreeStack) Push(item interface{}) {
+func (s *LockFreeStack) Push(item any) {
 	s.items = append(s.items, item)
 }
 
-func (s *LockFreeStack) Pop() interface{} {
+func (s *LockFreeStack) Pop() any {
 	if len(s.items) == 0 {
 		return nil
 	}
@@ -61,13 +61,13 @@ func (s *LockFreeStack) Pop() interface{} {
 func BenchmarkStackOperations(b *testing.B) {
 	stack := &Stack{}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Push operations
 		for j := 0; j < 100; j++ {
 			stack.Push(j)
 		}
-		
+
 		// Pop operations
 		for j := 0; j < 100; j++ {
 			stack.Pop()
@@ -78,13 +78,13 @@ func BenchmarkStackOperations(b *testing.B) {
 func BenchmarkLockFreeStackOperations(b *testing.B) {
 	stack := &LockFreeStack{}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Push operations
 		for j := 0; j < 100; j++ {
 			stack.Push(j)
 		}
-		
+
 		// Pop operations
 		for j := 0; j < 100; j++ {
 			stack.Pop()
@@ -94,17 +94,17 @@ func BenchmarkLockFreeStackOperations(b *testing.B) {
 
 // Queue implementation benchmarks
 type Queue struct {
-	items []interface{}
+	items []any
 	mu    sync.Mutex
 }
 
-func (q *Queue) Enqueue(item interface{}) {
+func (q *Queue) Enqueue(item any) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	q.items = append(q.items, item)
 }
 
-func (q *Queue) Dequeue() interface{} {
+func (q *Queue) Dequeue() any {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if len(q.items) == 0 {
@@ -117,7 +117,7 @@ func (q *Queue) Dequeue() interface{} {
 
 // Circular buffer queue for better performance
 type CircularQueue struct {
-	items []interface{}
+	items []any
 	head  int
 	tail  int
 	size  int
@@ -127,12 +127,12 @@ type CircularQueue struct {
 
 func NewCircularQueue(capacity int) *CircularQueue {
 	return &CircularQueue{
-		items: make([]interface{}, capacity),
+		items: make([]any, capacity),
 		cap:   capacity,
 	}
 }
 
-func (q *CircularQueue) Enqueue(item interface{}) bool {
+func (q *CircularQueue) Enqueue(item any) bool {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.size == q.cap {
@@ -144,7 +144,7 @@ func (q *CircularQueue) Enqueue(item interface{}) bool {
 	return true
 }
 
-func (q *CircularQueue) Dequeue() interface{} {
+func (q *CircularQueue) Dequeue() any {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.size == 0 {
@@ -159,13 +159,13 @@ func (q *CircularQueue) Dequeue() interface{} {
 func BenchmarkQueueOperations(b *testing.B) {
 	queue := &Queue{}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Enqueue operations
 		for j := 0; j < 100; j++ {
 			queue.Enqueue(j)
 		}
-		
+
 		// Dequeue operations
 		for j := 0; j < 100; j++ {
 			queue.Dequeue()
@@ -176,13 +176,13 @@ func BenchmarkQueueOperations(b *testing.B) {
 func BenchmarkCircularQueueOperations(b *testing.B) {
 	queue := NewCircularQueue(1000)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Enqueue operations
 		for j := 0; j < 100; j++ {
 			queue.Enqueue(j)
 		}
-		
+
 		// Dequeue operations
 		for j := 0; j < 100; j++ {
 			queue.Dequeue()
@@ -193,13 +193,13 @@ func BenchmarkCircularQueueOperations(b *testing.B) {
 func BenchmarkStandardListOperations(b *testing.B) {
 	l := list.New()
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Push operations
 		for j := 0; j < 100; j++ {
 			l.PushBack(j)
 		}
-		
+
 		// Pop operations
 		for j := 0; j < 100; j++ {
 			if e := l.Front(); e != nil {
@@ -230,14 +230,14 @@ func (pq PriorityQueue) Swap(i, j int) {
 	pq[j].index = j
 }
 
-func (pq *PriorityQueue) Push(x interface{}) {
+func (pq *PriorityQueue) Push(x any) {
 	n := len(*pq)
 	item := x.(*Item)
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *PriorityQueue) Pop() interface{} {
+func (pq *PriorityQueue) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
@@ -251,7 +251,7 @@ func BenchmarkPriorityQueueOperations(b *testing.B) {
 	pq := make(PriorityQueue, 0)
 	heap.Init(&pq)
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Push operations
 		for j := 0; j < 100; j++ {
@@ -261,7 +261,7 @@ func BenchmarkPriorityQueueOperations(b *testing.B) {
 			}
 			heap.Push(&pq, item)
 		}
-		
+
 		// Pop operations
 		for j := 0; j < 100; j++ {
 			if pq.Len() > 0 {
@@ -282,7 +282,7 @@ type LRUCache struct {
 
 type Node struct {
 	key   string
-	value interface{}
+	value any
 	prev  *Node
 	next  *Node
 }
@@ -299,10 +299,10 @@ func NewLRUCache(capacity int) *LRUCache {
 	return cache
 }
 
-func (c *LRUCache) Get(key string) (interface{}, bool) {
+func (c *LRUCache) Get(key string) (any, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if node, exists := c.cache[key]; exists {
 		c.moveToHead(node)
 		return node.value, true
@@ -310,10 +310,10 @@ func (c *LRUCache) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (c *LRUCache) Put(key string, value interface{}) {
+func (c *LRUCache) Put(key string, value any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if node, exists := c.cache[key]; exists {
 		node.value = value
 		c.moveToHead(node)
@@ -321,7 +321,7 @@ func (c *LRUCache) Put(key string, value interface{}) {
 		newNode := &Node{key: key, value: value}
 		c.cache[key] = newNode
 		c.addToHead(newNode)
-		
+
 		if len(c.cache) > c.capacity {
 			tail := c.removeTail()
 			delete(c.cache, tail.key)
@@ -354,24 +354,24 @@ func (c *LRUCache) removeTail() *Node {
 
 // Simple map cache for comparison
 type SimpleCache struct {
-	cache map[string]interface{}
+	cache map[string]any
 	mu    sync.RWMutex
 }
 
 func NewSimpleCache() *SimpleCache {
 	return &SimpleCache{
-		cache: make(map[string]interface{}),
+		cache: make(map[string]any),
 	}
 }
 
-func (c *SimpleCache) Get(key string) (interface{}, bool) {
+func (c *SimpleCache) Get(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	value, exists := c.cache[key]
 	return value, exists
 }
 
-func (c *SimpleCache) Put(key string, value interface{}) {
+func (c *SimpleCache) Put(key string, value any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cache[key] = value
@@ -384,14 +384,14 @@ func BenchmarkLRUCacheOperations(b *testing.B) {
 		keys[i] = fmt.Sprintf("key%d", i)
 	}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Put operations
 		for j := 0; j < 100; j++ {
 			key := keys[j%len(keys)]
 			cache.Put(key, fmt.Sprintf("value%d", j))
 		}
-		
+
 		// Get operations
 		for j := 0; j < 100; j++ {
 			key := keys[j%len(keys)]
@@ -407,14 +407,14 @@ func BenchmarkSimpleCacheOperations(b *testing.B) {
 		keys[i] = fmt.Sprintf("key%d", i)
 	}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Put operations
 		for j := 0; j < 100; j++ {
 			key := keys[j%len(keys)]
 			cache.Put(key, fmt.Sprintf("value%d", j))
 		}
-		
+
 		// Get operations
 		for j := 0; j < 100; j++ {
 			key := keys[j%len(keys)]
@@ -470,19 +470,19 @@ func (t *TreeNode) InorderTraversal(result *[]int) {
 func BenchmarkBinaryTreeOperations(b *testing.B) {
 	root := &TreeNode{Value: 50}
 	values := generateRandomSlice(1000)
-	
+
 	// Pre-populate tree
 	for _, v := range values[:500] {
 		root.Insert(v)
 	}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		// Insert operations
 		for j := 0; j < 10; j++ {
 			root.Insert(values[500+j%500])
 		}
-		
+
 		// Search operations
 		for j := 0; j < 10; j++ {
 			root.Search(values[j%len(values)])
@@ -493,13 +493,13 @@ func BenchmarkBinaryTreeOperations(b *testing.B) {
 func BenchmarkBinaryTreeTraversal(b *testing.B) {
 	root := &TreeNode{Value: 50}
 	values := generateRandomSlice(1000)
-	
+
 	// Pre-populate tree
 	for _, v := range values {
 		root.Insert(v)
 	}
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		var result []int
 		root.InorderTraversal(&result)
@@ -511,17 +511,17 @@ func BenchmarkBinaryTreeTraversal(b *testing.B) {
 func BenchmarkConcurrentMapAccess(b *testing.B) {
 	m := make(map[int]int)
 	var mu sync.RWMutex
-	
+
 	// Pre-populate map
 	for i := 0; i < 1000; i++ {
 		m[i] = i * 2
 	}
 	b.ResetTimer()
-	
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			key := rand.Intn(1000)
-			
+
 			// 80% reads, 20% writes
 			if rand.Float32() < 0.8 {
 				mu.RLock()
@@ -539,17 +539,17 @@ func BenchmarkConcurrentMapAccess(b *testing.B) {
 
 func BenchmarkSyncMapAccess(b *testing.B) {
 	var m sync.Map
-	
+
 	// Pre-populate map
 	for i := 0; i < 1000; i++ {
 		m.Store(i, i*2)
 	}
 	b.ResetTimer()
-	
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			key := rand.Intn(1000)
-			
+
 			// 80% reads, 20% writes
 			if rand.Float32() < 0.8 {
 				value, _ := m.Load(key)
@@ -564,12 +564,12 @@ func BenchmarkSyncMapAccess(b *testing.B) {
 // Component size scaling benchmarks
 func BenchmarkDataStructureScaling(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Stack_Size%d", size), func(b *testing.B) {
 			stack := &Stack{}
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				for j := 0; j < size/10; j++ {
 					stack.Push(j)
@@ -579,11 +579,11 @@ func BenchmarkDataStructureScaling(b *testing.B) {
 				}
 			}
 		})
-		
+
 		b.Run(fmt.Sprintf("Queue_Size%d", size), func(b *testing.B) {
 			queue := &Queue{}
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				for j := 0; j < size/10; j++ {
 					queue.Enqueue(j)
@@ -593,11 +593,11 @@ func BenchmarkDataStructureScaling(b *testing.B) {
 				}
 			}
 		})
-		
+
 		b.Run(fmt.Sprintf("LRUCache_Size%d", size), func(b *testing.B) {
 			cache := NewLRUCache(size)
 			b.ResetTimer()
-			
+
 			for i := 0; i < b.N; i++ {
 				for j := 0; j < size/10; j++ {
 					key := fmt.Sprintf("key%d", j)

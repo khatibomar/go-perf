@@ -29,7 +29,7 @@ type LoadTestConfig struct {
 // EndpointConfig defines load testing parameters for an endpoint
 type EndpointConfig struct {
 	Path   string
-	Weight int // Relative weight for selection
+	Weight int                 // Relative weight for selection
 	Params map[string][]string // Parameter variations
 }
 
@@ -76,13 +76,13 @@ func (lt *LoadTester) Run(ctx context.Context) *LoadTestResults {
 	defer func() {
 		lt.results.EndTime = time.Now()
 	}()
-	
+
 	log.Printf("Starting load test: %d concurrent workers for %v", lt.config.Concurrency, lt.config.Duration)
-	
+
 	// Create context with timeout
 	testCtx, cancel := context.WithTimeout(ctx, lt.config.Duration)
 	defer cancel()
-	
+
 	// Rate limiting setup
 	var rateLimiter <-chan time.Time
 	if lt.config.RPS > 0 {
@@ -90,7 +90,7 @@ func (lt *LoadTester) Run(ctx context.Context) *LoadTestResults {
 		defer ticker.Stop()
 		rateLimiter = ticker.C
 	}
-	
+
 	// Start workers
 	var wg sync.WaitGroup
 	for i := 0; i < lt.config.Concurrency; i++ {
@@ -100,13 +100,13 @@ func (lt *LoadTester) Run(ctx context.Context) *LoadTestResults {
 			lt.worker(testCtx, workerID, rateLimiter)
 		}(i)
 	}
-	
+
 	// Progress reporting
 	go lt.reportProgress(testCtx)
-	
+
 	wg.Wait()
 	log.Printf("Load test completed")
-	
+
 	return &lt.results
 }
 
@@ -125,7 +125,7 @@ func (lt *LoadTester) worker(ctx context.Context, workerID int, rateLimiter <-ch
 					return
 				}
 			}
-			
+
 			// Select endpoint and make request
 			endpoint := lt.selectEndpoint()
 			lt.makeRequest(ctx, endpoint)
@@ -138,13 +138,13 @@ func (lt *LoadTester) selectEndpoint() EndpointConfig {
 	if len(lt.config.Endpoints) == 0 {
 		return EndpointConfig{Path: "/"}
 	}
-	
+
 	// Calculate total weight
 	totalWeight := 0
 	for _, ep := range lt.config.Endpoints {
 		totalWeight += ep.Weight
 	}
-	
+
 	// Select based on weight
 	random := rand.Intn(totalWeight)
 	currentWeight := 0
@@ -154,24 +154,24 @@ func (lt *LoadTester) selectEndpoint() EndpointConfig {
 			return ep
 		}
 	}
-	
+
 	return lt.config.Endpoints[0] // Fallback
 }
 
 // makeRequest performs a single HTTP request
 func (lt *LoadTester) makeRequest(ctx context.Context, endpoint EndpointConfig) {
 	start := time.Now()
-	
+
 	// Build URL with random parameters
 	url := lt.buildURL(endpoint)
-	
+
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		lt.recordError("request_creation", time.Since(start))
 		return
 	}
-	
+
 	// Make request
 	resp, err := lt.client.Do(req)
 	if err != nil {
@@ -179,16 +179,16 @@ func (lt *LoadTester) makeRequest(ctx context.Context, endpoint EndpointConfig) 
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	// Read response
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		lt.recordError("response_read", time.Since(start))
 		return
 	}
-	
+
 	latency := time.Since(start)
-	
+
 	// Record results
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		lt.recordSuccess(latency)
@@ -200,11 +200,11 @@ func (lt *LoadTester) makeRequest(ctx context.Context, endpoint EndpointConfig) 
 // buildURL constructs URL with random parameters
 func (lt *LoadTester) buildURL(endpoint EndpointConfig) string {
 	baseURL := lt.config.BaseURL + endpoint.Path
-	
+
 	if len(endpoint.Params) == 0 {
 		return baseURL
 	}
-	
+
 	// Add random parameters
 	params := url.Values{}
 	for key, values := range endpoint.Params {
@@ -213,11 +213,11 @@ func (lt *LoadTester) buildURL(endpoint EndpointConfig) string {
 			params.Add(key, value)
 		}
 	}
-	
+
 	if len(params) > 0 {
 		return baseURL + "?" + params.Encode()
 	}
-	
+
 	return baseURL
 }
 
@@ -225,7 +225,7 @@ func (lt *LoadTester) buildURL(endpoint EndpointConfig) string {
 func (lt *LoadTester) recordSuccess(latency time.Duration) {
 	atomic.AddInt64(&lt.results.TotalRequests, 1)
 	atomic.AddInt64(&lt.results.SuccessRequests, 1)
-	
+
 	lt.mu.Lock()
 	lt.results.TotalLatency += latency
 	if latency < lt.results.MinLatency {
@@ -234,7 +234,7 @@ func (lt *LoadTester) recordSuccess(latency time.Duration) {
 	if latency > lt.results.MaxLatency {
 		lt.results.MaxLatency = latency
 	}
-	
+
 	// Record latency bucket
 	bucket := lt.getLatencyBucket(latency)
 	lt.results.LatencyBuckets[bucket]++
@@ -245,7 +245,7 @@ func (lt *LoadTester) recordSuccess(latency time.Duration) {
 func (lt *LoadTester) recordError(errorType string, latency time.Duration) {
 	atomic.AddInt64(&lt.results.TotalRequests, 1)
 	atomic.AddInt64(&lt.results.FailedRequests, 1)
-	
+
 	lt.mu.Lock()
 	lt.results.ErrorsByType[errorType]++
 	lt.mu.Unlock()
@@ -273,7 +273,7 @@ func (lt *LoadTester) getLatencyBucket(latency time.Duration) string {
 func (lt *LoadTester) reportProgress(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -281,7 +281,7 @@ func (lt *LoadTester) reportProgress(ctx context.Context) {
 		case <-ticker.C:
 			total := atomic.LoadInt64(&lt.results.TotalRequests)
 			success := atomic.LoadInt64(&lt.results.SuccessRequests)
-			
+
 			if total > 0 {
 				successRate := float64(success) / float64(total) * 100
 				log.Printf("Progress: %d requests, %.1f%% success rate", total, successRate)
@@ -294,35 +294,35 @@ func (lt *LoadTester) reportProgress(ctx context.Context) {
 func (lt *LoadTester) PrintResults() {
 	results := &lt.results
 	duration := results.EndTime.Sub(results.StartTime)
-	
+
 	fmt.Println("\n=== Load Test Results ===")
 	fmt.Printf("Duration: %v\n", duration)
 	fmt.Printf("Total Requests: %d\n", results.TotalRequests)
 	fmt.Printf("Successful Requests: %d\n", results.SuccessRequests)
 	fmt.Printf("Failed Requests: %d\n", results.FailedRequests)
-	
+
 	if results.TotalRequests > 0 {
 		successRate := float64(results.SuccessRequests) / float64(results.TotalRequests) * 100
 		fmt.Printf("Success Rate: %.2f%%\n", successRate)
-		
+
 		rps := float64(results.TotalRequests) / duration.Seconds()
 		fmt.Printf("Requests/Second: %.2f\n", rps)
 	}
-	
+
 	if results.SuccessRequests > 0 {
 		avgLatency := results.TotalLatency / time.Duration(results.SuccessRequests)
 		fmt.Printf("Average Latency: %v\n", avgLatency)
 		fmt.Printf("Min Latency: %v\n", results.MinLatency)
 		fmt.Printf("Max Latency: %v\n", results.MaxLatency)
 	}
-	
+
 	if len(results.ErrorsByType) > 0 {
 		fmt.Println("\nErrors by Type:")
 		for errorType, count := range results.ErrorsByType {
 			fmt.Printf("  %s: %d\n", errorType, count)
 		}
 	}
-	
+
 	if len(results.LatencyBuckets) > 0 {
 		fmt.Println("\nLatency Distribution:")
 		buckets := []string{"<10ms", "10-50ms", "50-100ms", "100-500ms", "500ms-1s", ">1s"}
@@ -453,7 +453,7 @@ func GetLeakyScenario() LoadTestConfig {
 }
 
 // runLoadTest function for standalone load testing
-func runLoadTest() {
+func main() {
 	var (
 		scenario    = flag.String("scenario", "mixed", "Load test scenario: cpu, memory, mixed, leaky")
 		concurrency = flag.Int("concurrency", 0, "Number of concurrent workers (0 = use scenario default)")
@@ -462,7 +462,7 @@ func runLoadTest() {
 		baseURL     = flag.String("url", "http://localhost:8080", "Base URL for testing")
 	)
 	flag.Parse()
-	
+
 	// Select scenario
 	var config LoadTestConfig
 	switch *scenario {
@@ -477,7 +477,7 @@ func runLoadTest() {
 	default:
 		log.Fatalf("Unknown scenario: %s", *scenario)
 	}
-	
+
 	// Override with command line parameters
 	if *baseURL != "http://localhost:8080" {
 		config.BaseURL = *baseURL
@@ -491,28 +491,28 @@ func runLoadTest() {
 	if *rps >= 0 {
 		config.RPS = *rps
 	}
-	
+
 	// Check if server is running
 	resp, err := http.Get(config.BaseURL + "/health")
 	if err != nil {
 		log.Fatalf("Server not reachable at %s: %v", config.BaseURL, err)
 	}
 	resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		log.Fatalf("Server health check failed: %d", resp.StatusCode)
 	}
-	
+
 	log.Printf("Server is healthy, starting load test...")
-	
+
 	// Run load test
 	loadTester := NewLoadTester(config)
 	ctx := context.Background()
 	results := loadTester.Run(ctx)
-	
+
 	// Print results
 	loadTester.PrintResults()
-	
+
 	// Print profiling instructions
 	fmt.Println("\n=== Profiling Instructions ===")
 	fmt.Printf("While load test is running, you can profile the server:\n")
@@ -520,7 +520,7 @@ func runLoadTest() {
 	fmt.Printf("  Memory Profile: go tool pprof %s/debug/pprof/heap\n", config.BaseURL)
 	fmt.Printf("  Goroutine Profile: go tool pprof %s/debug/pprof/goroutine\n", config.BaseURL)
 	fmt.Printf("  Web Interface: %s/debug/pprof/\n", config.BaseURL)
-	
+
 	if results.FailedRequests > 0 {
 		log.Printf("Load test completed with %d failed requests", results.FailedRequests)
 	} else {
